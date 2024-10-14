@@ -11,14 +11,10 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# 🐍 Install Miniconda and set up the environment
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-    bash /tmp/miniconda.sh -b -p /opt/conda && \
-    rm /tmp/miniconda.sh && \
-    /opt/conda/bin/conda init bash
-
 # 📂 Copy the project files into the container (workspace directory)
+WORKDIR /workspace
 COPY . /workspace
+
 
 # 📝 Add the first script as 'setup_env.sh'
 RUN echo '#!/bin/bash\n\
