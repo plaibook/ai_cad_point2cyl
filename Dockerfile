@@ -1,4 +1,4 @@
-# 🌟 Base image from DockerHub
+# 🐳 Base image from DockerHub
 FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
 
 # 💾 Install essential dependencies
@@ -12,44 +12,35 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 📂 Copy the project files into the container (workspace directory)
-WORKDIR /workspace
-COPY . /workspace
+COPY . /workspace/ai_cad_point2cyl
 
+# 🌐 Change working directory to the project directory
+WORKDIR /workspace/ai_cad_point2cyl
 
-# 📝 Add the first script as 'setup_env.sh'
-RUN echo '#!/bin/bash\n\
-cd /workspace\n\
-git clone https://github.com/plaibook/ai_cad_point2cyl.git\n\
-cd ai_cad_point2cyl\n\
-conda create --name ai_cad_point2cyl python=3.8 -y\n\
-conda init\n\
-source ~/.bashrc\n\
-conda activate ai_cad_point2cyl\n\
-apt-get install -y g++\n\
-pip install torch==1.8.1\n\
-pip install -r requirements.txt\n\
-echo "🎉 Done! Your conda environment is ready to use."' > /workspace/setup_env.sh
+# 📦 Download data (cached separately)
+RUN wget http://download.cs.stanford.edu/orion/Point2Cyl/data.tar.gz
 
-# 📝 Add the second script as 'download_data.sh'
-RUN echo '#!/bin/bash\n\
-sudo apt-get update\n\
-sudo apt-get install -y wget tar\n\
-wget http://download.cs.stanford.edu/orion/Point2Cyl/data.tar.gz\n\
-mkdir -p data\n\
-tar -xzf data.tar.gz -C data\n\
-rm data.tar.gz\n\
-mv data data_old\n\
-mv data_old/data/ data\n\
-rm -rf data_old' > /workspace/download_data.sh
+# 📂 Extract the downloaded data
+RUN tar -xzf data.tar.gz
 
-# 🛠️ Make the scripts executable
-RUN chmod +x /workspace/setup_env.sh /workspace/download_data.sh
+# 📦 Download DeepCAD data (cached separately)
+RUN wget http://download.cs.stanford.edu/orion/point2cyl/DeepCAD.zip
 
-# 🔄 Execute the setup script (install environment, clone repo, install dependencies)
-RUN bash /workspace/setup_env.sh
+# 📂 Unzip DeepCAD data
+RUN unzip DeepCAD
 
-# 🔄 Execute the data download and extraction script
-RUN bash /workspace/download_data.sh
+# 🐍 Create a new conda environment and initialize conda
+RUN conda create --name ai_cad_point2cyl python=3.8 -y && \
+    conda init bash
+
+# 🐍 Install packages using pip (conda environment reactivated each time)
+RUN /bin/bash -c "source ~/.bashrc && conda activate ai_cad_point2cyl && \
+    pip install torch==1.8.1 && \
+    pip install -r requirements.txt"
+
+# 🌳 Run the evaluation script (conda environment reactivated)
+RUN /bin/bash -c "source ~/.bashrc && conda activate ai_cad_point2cyl && \
+    python eval.py --logdir=results/Point2Cyl_without_sketch/ --dump_dir=dump/Point2Cyl_without_sketch/ --data_dir=data/"
 
 # 👾 Expose ports for Jupyter Notebook or other services
 EXPOSE 22
