@@ -18,4 +18,4 @@ rm data.tar.gz
 
 mv data data_old
 mv data_old/data/ data
-rm-rf data_old
+rm -rf data_old
